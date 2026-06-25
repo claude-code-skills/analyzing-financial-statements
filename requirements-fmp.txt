@@ -1,0 +1,13 @@
+# 财务分析 Skill 依赖
+
+# 美股数据获取 (FMP API)
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# A股数据获取 (AKShare)
+akshare>=1.12.0
+efinance>=0.5.5
+
+# 数据处理
+pandas>=1.5.0
+numpy>=1.24.0

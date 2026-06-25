@@ -1,0 +1,27 @@
+# Financial Analyzer v2 dependencies
+# Install: pip install -r requirements.txt
+
+# Core data sources
+akshare>=1.18
+yfinance>=1.2
+
+# Data processing
+pandas>=3.0
+numpy>=2.0
+pandas-ta>=0.4
+
+# Web scraping & HTTP
+requests>=2.31
+beautifulsoup4>=4.12
+lxml>=5.0
+html5lib>=1.1
+
+# Browser automation (ETF premium via xueqiu)
+playwright>=1.50
+
+# Config
+python-dotenv>=1.0
+
+# Excel/PDF
+openpyxl>=3.1
+xlrd>=2.0
