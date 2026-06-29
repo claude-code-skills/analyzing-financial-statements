@@ -405,7 +405,21 @@ class FinancialAnalyzer:
                 out.append(f"- 定投 {y} 年：中位年化 **{p['median_cagr']}%** · 最坏 **{p['worst_cagr']}%** · 不亏概率 **{p['prob_no_loss']}%**（{p['samples']} 个样本）")
         v = d.get("vs_lumpsum", {})
         if v:
-            out.append(f"- 全周期定投 vs 满仓：定投 **{v['dca_cagr']}%** vs 满仓 **{v['lumpsum_cagr']}%** → **{v['winner']}**（{v['smile_advantage']}pp，单一样本仅直觉参考）")
+            yrs = v.get("years_full")
+            def _pct(x):
+                return f"+{x}%" if isinstance(x, (int, float)) and x >= 0 else f"{x}%"
+            # 短历史标的(成立<3年):连最小滚动期(3年)都凑不齐,全周期单一样本 XIRR
+            # 无统计意义(实测 0.5 年标的 XIRR 飙到 140%、2.8 年 109%),不输出全周期对照
+            if isinstance(yrs, (int, float)) and yrs < 3:
+                out.append(f"- 全周期仅 {yrs} 年：⚠️ 成立不足 3 年，定投/满仓全周期对照样本严重不足、XIRR 易被短线暴涨扭曲，**不具参考价值**；请待更长历史后再看")
+            else:
+                yrs_s = yrs if isinstance(yrs, (int, float)) else "?"
+                # 并列两个口径、不二选一:累计收益(谁赚得多)与 XIRR(资金效率年化)常矛盾——
+                # 满仓累计通常更高(资金全程在场),定投 XIRR 常更高(晚期短线暴利放大),
+                # 简单给「定投/满仓胜」会误导。定投真正优势在风险(分批摊低、最坏更稳)
+                out.append(f"- 全周期（{yrs_s}年，单一样本）：满仓累计 **{_pct(v.get('lumpsum_total_return'))}** vs 定投累计 **{_pct(v.get('dca_total_return'))}**")
+                out.append(f"  · 满仓绝对收益通常更高（资金全程在场吃满涨幅）；定投 XIRR（{v.get('dca_cagr')}% vs 满仓 {v.get('lumpsum_cagr')}%）更高，但那是资金效率年化、对后期暴涨敏感、非真实年均")
+                out.append(f"  · 定投真正价值在风险：分批摊低成本、最坏情况更稳（见上方滚动「最坏」）。看概率请参考 3/5 年滚动分布")
         out.append("")
         return out
 

@@ -65,11 +65,18 @@ def dca_summary(closes: list, years_list=(3, 5, 10)) -> dict:
 
 
 def dca_vs_lumpsum(closes: list) -> dict:
-    """整条序列上「定投 vs 满仓」XIRR 单条对照(非滚动分布,样本数=1):
-    从序列起点月定投到终点 vs 起点满仓到终点,各算 XIRR,比较谁占优。
+    """整条序列上「定投 vs 满仓」对照(非滚动分布,样本数=1):
+    从序列起点月定投到终点 vs 起点满仓到终点,比较谁占优。
     满仓单笔 XIRR =(终点/起点)^(1/年数)-1(解析);定投多笔 XIRR 数值二分求解。
     不足 2 个买入点(序列极短)→ {}。
-    注:全周期为单一样本,易被起止点主导,仅供直觉参考;
+
+    返回两类口径,缺一不可:
+    - total_return(累计总收益率%):市值/投入-1,直观可加总,**对外呈现主指标**。
+    - cagr(XIRR 年化%):资金时间加权年化。⚠️ 对「后段暴涨」的微笑曲线极度
+      敏感——晚期投入的短线暴利现金流年化畸高,会把整体 XIRR 拉到远超真实
+      体感的虚高水平(实测:某标的累计仅 +332%,XIRR 却飙到 +45%,极易被误读
+      为「年化 45%」)。故 cagr 仅作资金效率参考,**不可单独作为年化收益展示**。
+    全周期为单一样本,易被起止点主导,仅供直觉参考;
     看概率应参考 dca_summary 的滚动分布(横截面统计)。"""
     c = np.array([float(x) for x in closes if x and x > 0], dtype=float)
     if len(c) < INVEST_PERIOD + 1:      # 至少能定投 2 次
@@ -92,7 +99,14 @@ def dca_vs_lumpsum(closes: list) -> dict:
     lumpsum_cagr = float((c[-1] / c[0]) ** (1.0 / years_full) - 1.0)
     diff = float(dca_cagr) - lumpsum_cagr
     winner = "定投" if diff > 1e-4 else ("满仓" if diff < -1e-4 else "持平")  # 1bp 阈值避浮点噪声
+    dca_total_return = (mv / len(idx) - 1) * 100         # 定投累计总收益率%(市值/总投入-1)
+    lumpsum_total_return = (c[-1] / c[0] - 1) * 100      # 满仓累计总收益率%(终点/起点-1)
     return {
+        # 累计总收益(主指标,直观、不被 XIRR 后期暴涨放大)
+        "dca_total_return": round(float(dca_total_return), 1),
+        "lumpsum_total_return": round(float(lumpsum_total_return), 1),
+        "years_full": round(float(years_full), 1),
+        # XIRR 年化(资金效率参考,后期暴涨会虚高,见 docstring,勿单独展示为「年化」)
         "dca_cagr": round(float(dca_cagr) * 100, 1),
         "lumpsum_cagr": round(lumpsum_cagr * 100, 1),
         "winner": winner,

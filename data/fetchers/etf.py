@@ -297,18 +297,23 @@ class ETFFetcher:
         keep = [c for c in self._STD_COLS if c in result.columns]
         return result[keep].reset_index(drop=True)
 
-    def get_etf_hist(self, symbol: str, period: int = 100) -> pd.DataFrame:
+    def get_etf_hist(self, symbol: str, period: int = 100, adjust: str = "qfq") -> pd.DataFrame:
         """
         获取ETF历史行情（主通道eastmoney，备用Sina）
         返回 DataFrame: 日期, 开盘, 收盘, 最高, 最低, 成交量
+
+        adjust 默认 qfq(前复权):技术分析/价格统计必须用复权价。若用不复权,
+        ETF份额拆分/大额分红后的除权缺口(如单日 -65%)会进入 MA/布林/KDJ 等
+        指标的 rolling 窗口,导致拆分后约 60 天内技术指标全面失真(实测 MA60
+        偏差最高 +178%)。前复权把除权缺口回填,指标回归真实走势。
         """
-        # 主通道：eastmoney
+        # 主通道：eastmoney（qfq 前复权，消除拆分/分红对技术指标的污染）
         try:
             self._rate_limit()
             start_date = (datetime.now() - timedelta(days=period + 30)).strftime("%Y%m%d")
             end_date = datetime.now().strftime("%Y%m%d")
             df = ak.fund_etf_hist_em(symbol=symbol, period="daily",
-                                     start_date=start_date, end_date=end_date, adjust="")
+                                     start_date=start_date, end_date=end_date, adjust=adjust)
             if df is not None and not df.empty:
                 return self._normalize_hist(df, period)
         except Exception:
